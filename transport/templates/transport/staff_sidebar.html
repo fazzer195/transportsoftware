@@ -1,0 +1,38 @@
+<div class="sidebar" id="sidebar">
+    <div class="nav-item {% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}">
+        <a href="{% url 'staff_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}">
+            <i class="fas fa-chart-line"></i> 
+            <span>Dashboard</span>
+        </a>
+    </div>
+    <div class="nav-item">
+        <a href="#" class="nav-link">
+            <i class="fas fa-plus-circle"></i> 
+            <span>New Builty</span>
+        </a>
+    </div>
+    <div class="nav-item">
+        <a href="#" class="nav-link">
+            <i class="fas fa-search"></i> 
+            <span>Search Builty</span>
+        </a>
+    </div>
+    <div class="nav-item">
+        <a href="#" class="nav-link">
+            <i class="fas fa-truck"></i> 
+            <span>My Vehicles</span>
+        </a>
+    </div>
+    <div class="nav-item">
+        <a href="#" class="nav-link">
+            <i class="fas fa-check-circle"></i> 
+            <span>Update Delivery</span>
+        </a>
+    </div>
+    <div class="nav-item">
+        <a href="#" class="nav-link">
+            <i class="fas fa-history"></i> 
+            <span>Today's Tasks</span>
+        </a>
+    </div>
+</div>

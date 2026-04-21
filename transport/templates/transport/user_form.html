@@ -1,0 +1,125 @@
+{% extends 'transport/base.html' %}
+
+{% block title %}{% if user %}Edit User{% else %}Add New User{% endif %} - KBRL{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h4 style="font-size: 20px; font-weight: 600; color: #1f2937;">
+                    {% if user %}Edit User{% else %}Add New User{% endif %}
+                </h4>
+                <p style="font-size: 13px; color: #6b7280;">
+                    {% if user %}Update user information{% else %}Create a new system user{% endif %}
+                </p>
+            </div>
+            <a href="{% url 'user_list' %}" class="btn-primary-custom" style="background: #6b7280;">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="card-header">
+        <h5><i class="fas fa-user"></i> {% if user %}Edit User Details{% else %}User Information{% endif %}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row g-3">
+                <!-- Username -->
+                <div class="col-md-6">
+                    <label class="form-label" style="font-size: 13px; font-weight: 500;">Username *</label>
+                    <input type="text" name="username" class="form-control" value="{{ user.username|default:'' }}" required style="font-size: 13px;">
+                </div>
+                
+                <!-- Email -->
+                <div class="col-md-6">
+                    <label class="form-label" style="font-size: 13px; font-weight: 500;">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ user.email|default:'' }}" style="font-size: 13px;">
+                </div>
+                
+                <!-- Password (Only show for new user or allow change) -->
+                <div class="col-md-6">
+                    <label class="form-label" style="font-size: 13px; font-weight: 500;">
+                        {% if user %}New Password (leave blank to keep current){% else %}Password *{% endif %}
+                    </label>
+                    <input type="password" name="password" class="form-control" {% if not user %}required{% endif %} style="font-size: 13px;">
+                </div>
+                
+                <!-- Confirm Password -->
+                <div class="col-md-6">
+                    <label class="form-label" style="font-size: 13px; font-weight: 500;">Confirm Password</label>
+                    <input type="password" name="confirm_password" class="form-control" {% if not user %}required{% endif %} style="font-size: 13px;">
+                </div>
+                
+                <!-- Role -->
+                <div class="col-md-6">
+                    <label class="form-label" style="font-size: 13px; font-weight: 500;">Role *</label>
+                    <select name="role" class="form-control" required style="font-size: 13px;">
+                        <option value="">Select Role</option>
+                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                        <option value="staff" {% if user.role == 'staff' %}selected{% endif %}>Staff</option>
+                    </select>
+                </div>
+                
+                <!-- Phone -->
+                <div class="col-md-6">
+                    <label class="form-label" style="font-size: 13px; font-weight: 500;">Phone Number</label>
+                    <input type="text" name="phone" class="form-control" value="{{ user.phone|default:'' }}" style="font-size: 13px;">
+                </div>
+                
+                <!-- Address -->
+                <div class="col-12">
+                    <label class="form-label" style="font-size: 13px; font-weight: 500;">Address</label>
+                    <textarea name="address" class="form-control" rows="3" style="font-size: 13px;">{{ user.address|default:'' }}</textarea>
+                </div>
+                
+                <!-- Active Status -->
+                <div class="col-12">
+                    <div class="form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="isActive" {% if user.is_active or not user %}checked{% endif %}>
+                        <label class="form-check-label" for="isActive" style="font-size: 13px;">
+                            Active (User can login)
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Submit Buttons -->
+                <div class="col-12">
+                    <hr>
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn-primary-custom">
+                            <i class="fas fa-save"></i> {% if user %}Update User{% else %}Create User{% endif %}
+                        </button>
+                        <a href="{% url 'user_list' %}" class="btn-primary-custom" style="background: #6b7280;">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-control, .form-check-input {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+    
+    .form-control:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .form-label {
+        margin-bottom: 6px;
+        color: #374151;
+    }
+</style>
+{% endblock %}

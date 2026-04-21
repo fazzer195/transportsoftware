@@ -1,0 +1,11 @@
+# .gitignore file banao taaki unnecessary files push na ho
+echo "__pycache__/" >> .gitignore
+echo "db.sqlite3" >> .gitignore
+echo "venv/" >> .gitignore
+echo "*.pyc" >> .gitignore
+echo ".env" >> .gitignore
+echo "*.log" >> .gitignore
+
+echo "__pycache__/" >> .gitignore
+echo "*.pyc" >> .gitignore
+echo "db.sqlite3" >> .gitignore

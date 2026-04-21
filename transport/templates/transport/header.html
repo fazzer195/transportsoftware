@@ -1,0 +1,33 @@
+{% load static %}
+<nav class="navbar">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center gap-3">
+            <!-- Mobile Toggle Button -->
+            <button class="mobile-toggle-btn" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="{% url 'dashboard' %}" class="navbar-brand">
+                <i class="fas fa-truck"></i> 
+                <span class="brand-text">KBRL Transport</span>
+            </a>
+        </div>
+        <div class="user-info">
+            <div class="text-end">
+                <div class="user-name">{{ request.user.username }}</div>
+                <div class="user-role">
+                    {% if request.user.role == 'admin' %}
+                        Administrator
+                    {% elif request.user.role == 'staff' %}
+                        Staff
+                    {% else %}
+                        {{ request.user.role }}
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> 
+                <span class="logout-text">Logout</span>
+            </a>
+        </div>
+    </div>
+</nav>
