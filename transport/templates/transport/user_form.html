@@ -26,7 +26,7 @@
         <h5><i class="fas fa-user"></i> {% if user %}Edit User Details{% else %}User Information{% endif %}</h5>
     </div>
     <div class="card-body">
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
             <div class="row g-3">
@@ -63,6 +63,10 @@
                         <option value="">Select Role</option>
                         <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
                         <option value="staff" {% if user.role == 'staff' %}selected{% endif %}>Staff</option>
+                        <option value="munshi" {% if user.role == 'munshi' %}selected{% endif %}>Munshi (Entry Operator)</option>
+                        <option value="driver" {% if user.role == 'driver' %}selected{% endif %}>Driver (Vehicle Only)</option>
+                        <option value="clerk" {% if user.role == 'clerk' %}selected{% endif %}>Clerk (Billing Only)</option>
+                        <option value="accountant" {% if user.role == 'accountant' %}selected{% endif %}>Accountant (Finance Only)</option>
                     </select>
                 </div>
                 
@@ -71,6 +75,67 @@
                     <label class="form-label" style="font-size: 13px; font-weight: 500;">Phone Number</label>
                     <input type="text" name="phone" class="form-control" value="{{ user.phone|default:'' }}" style="font-size: 13px;">
                 </div>
+
+                <div class="col-md-6">
+    <label class="form-label">Profile Picture</label>
+    {% if user.profile_picture %}
+        <br>
+        <img src="{{ user.profile_picture.url }}" style="width: 50px; height: 50px; border-radius: 50%; margin-bottom: 10px;">
+        <br>
+    {% endif %}
+    <input type="file" name="profile_picture" class="form-control" accept="image/*">
+</div>
+
+<!-- Aadhar Details -->
+<div class="col-md-6">
+    <label class="form-label">Aadhar Number</label>
+    <input type="text" name="aadhar_number" class="form-control" value="{{ user.aadhar_number|default:'' }}" maxlength="12">
+</div>
+
+<div class="col-md-6">
+    <label class="form-label">Aadhar Card Attachment</label>
+    {% if user.aadhar_attachment %}
+        <br><a href="{{ user.aadhar_attachment.url }}" target="_blank">View Current</a><br>
+    {% endif %}
+    <input type="file" name="aadhar_attachment" class="form-control" accept=".pdf,.jpg,.png">
+</div>
+
+<!-- PAN Details -->
+<div class="col-md-6">
+    <label class="form-label">PAN Number</label>
+    <input type="text" name="pan_number" class="form-control" value="{{ user.pan_number|default:'' }}" maxlength="10">
+</div>
+
+<div class="col-md-6">
+    <label class="form-label">PAN Card Attachment</label>
+    {% if user.pan_attachment %}
+        <br><a href="{{ user.pan_attachment.url }}" target="_blank">View Current</a><br>
+    {% endif %}
+    <input type="file" name="pan_attachment" class="form-control" accept=".pdf,.jpg,.png">
+</div>
+
+<!-- Driver Specific Fields (show only if role is driver) -->
+<div class="driver-fields" style="display: none;">
+    <div class="col-12">
+        <hr>
+        <h6 style="font-size: 14px; font-weight: 600;">Driver Specific Information</h6>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Driving License Number</label>
+        <input type="text" name="license_number" class="form-control" value="{{ user.license_number|default:'' }}">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">License Attachment</label>
+        {% if user.license_attachment %}
+            <br><a href="{{ user.license_attachment.url }}" target="_blank">View Current</a><br>
+        {% endif %}
+        <input type="file" name="license_attachment" class="form-control" accept=".pdf,.jpg,.png">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Experience (Years)</label>
+        <input type="number" name="experience_years" class="form-control" value="{{ user.experience_years|default:0 }}">
+    </div>
+</div>
                 
                 <!-- Address -->
                 <div class="col-12">
@@ -122,4 +187,22 @@
         color: #374151;
     }
 </style>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Show/hide driver fields based on role selection
+$(document).ready(function() {
+    function toggleDriverFields() {
+        var role = $('select[name="role"]').val();
+        if (role === 'driver') {
+            $('.driver-fields').show();
+        } else {
+            $('.driver-fields').hide();
+        }
+    }
+    
+    $('select[name="role"]').on('change', toggleDriverFields);
+    toggleDriverFields();
+});
+</script>
 {% endblock %}

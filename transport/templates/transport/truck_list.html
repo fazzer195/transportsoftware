@@ -1,0 +1,200 @@
+{% extends 'transport/base.html' %}
+
+{% block title %}Truck Management - KBRL{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h4 style="font-size: 20px; font-weight: 600; color: #1f2937;">Truck Management</h4>
+                <p style="font-size: 13px; color: #6b7280;">Manage fleet, drivers, and vehicle documents</p>
+            </div>
+            <a href="{% url 'truck_create' %}" class="btn-primary-custom">
+                <i class="fas fa-plus"></i> Add New Truck
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-title">Total Trucks</div>
+            <div class="stat-value">{{ total_trucks }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-title">Active</div>
+            <div class="stat-value" style="color: #10b981;">{{ active_trucks }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-title">On Trip</div>
+            <div class="stat-value" style="color: #f59e0b;">{{ on_trip_trucks }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-title">Maintenance</div>
+            <div class="stat-value" style="color: #ef4444;">{{ maintenance_trucks }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="content-card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-search"></i> Search</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" placeholder="Search by vehicle number or owner name..."
+                    value="{{ search_query }}" style="font-size: 13px">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn-primary-custom" style="width: 100%;">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Trucks Table -->
+<div class="content-card">
+    <div class="card-header">
+        <h5><i class="fas fa-truck"></i> Truck Fleet</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive-mobile">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Vehicle No.</th>
+                        <th>Type</th>
+                        <th>Driver</th>
+                        <th>Owner</th>
+                        <th>Capacity</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for truck in trucks %}
+                    <tr>
+                        <td><strong>{{ truck.vehicle_number }}</strong></td>
+                        <td>{{ truck.get_truck_type_display }}</td>
+                        <td>
+                            {% if truck.primary_driver %}
+                                {{ truck.primary_driver.username }}
+                            {% else %}
+                                <span class="text-muted">Not Assigned</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ truck.owner_name|default:"-" }}</td>
+                        <td>{{ truck.max_weight_capacity }} KG</td>
+                        <td>
+                            {% if truck.status == 'active' %}
+                                <span class="badge" style="background: #10b981;">Active</span>
+                            {% elif truck.status == 'on_trip' %}
+                                <span class="badge" style="background: #f59e0b;">On Trip</span>
+                            {% elif truck.status == 'maintenance' %}
+                                <span class="badge" style="background: #ef4444;">Maintenance</span>
+                            {% else %}
+                                <span class="badge" style="background: #6b7280;">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'truck_edit' truck.id %}" class="btn-sm" style="background: #2563eb; color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <button onclick="confirmDelete({{ truck.id }}, '{{ truck.vehicle_number }}')" class="btn-sm" style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 6px; border: none; font-size: 11px;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">No trucks found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if trucks.has_other_pages %}
+        <div class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination" style="gap: 5px">
+                    {% if trucks.has_previous %}
+                    <li><a href="?page=1" class="pagination-link">First</a></li>
+                    <li><a href="?page={{ trucks.previous_page_number }}" class="pagination-link">Previous</a></li>
+                    {% endif %}
+                    <li><span class="pagination-current">Page {{ trucks.number }} of {{ trucks.paginator.num_pages }}</span></li>
+                    {% if trucks.has_next %}
+                    <li><a href="?page={{ trucks.next_page_number }}" class="pagination-link">Next</a></li>
+                    <li><a href="?page={{ trucks.paginator.num_pages }}" class="pagination-link">Last</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 14px; padding: 24px; max-width: 400px; width: 90%;">
+        <h5 style="margin-bottom: 16px;">Confirm Delete</h5>
+        <p id="deleteMessage" style="font-size: 13px; color: #6b7280;">Are you sure you want to delete this truck?</p>
+        <div class="d-flex gap-3 justify-content-end mt-4">
+            <button onclick="closeDeleteModal()" style="padding: 8px 16px; background: #f3f4f6; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+            <a href="#" id="deleteLink" style="padding: 8px 16px; background: #dc2626; color: white; text-decoration: none; border-radius: 8px;">Delete</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(truckId, truckNumber) {
+        const modal = document.getElementById('deleteModal');
+        const deleteLink = document.getElementById('deleteLink');
+        const deleteMessage = document.getElementById('deleteMessage');
+        deleteMessage.innerHTML = `Are you sure you want to delete truck "<strong>${truckNumber}</strong>"? This action cannot be undone.`;
+        deleteLink.href = `/trucks/delete/${truckId}/`;
+        modal.style.display = 'flex';
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+</script>
+
+<style>
+    .pagination-link, .pagination-current {
+        padding: 6px 12px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #374151;
+        font-size: 13px;
+    }
+    .pagination-current {
+        background: #2563eb;
+        color: white;
+    }
+    .table-responsive-mobile {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    @media (max-width: 768px) {
+        .table-custom { min-width: 800px; }
+    }
+</style>
+{% endblock %}

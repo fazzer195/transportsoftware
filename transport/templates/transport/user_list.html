@@ -8,7 +8,7 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h4 style="font-size: 20px; font-weight: 600; color: #1f2937;">User Management</h4>
-                <p style="font-size: 13px; color: #6b7280;">Manage system users, roles, and permissions</p>
+                <p style="font-size: 13px; color: #6b7280;">Manage system users, roles, and documents</p>
             </div>
             <a href="{% url 'user_create' %}" class="btn-primary-custom">
                 <i class="fas fa-plus"></i> Add New User
@@ -39,8 +39,8 @@
     </div>
     <div class="col-md-3 col-6">
         <div class="stat-card">
-            <div class="stat-title">Admins / Staff</div>
-            <div class="stat-value" style="font-size: 20px;">{{ admin_count }} / {{ staff_count }}</div>
+            <div class="stat-title">Drivers</div>
+            <div class="stat-value">{{ driver_count|default:0 }}</div>
         </div>
     </div>
 </div>
@@ -53,25 +53,29 @@
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-4">
-                <input type="text" name="search" class="form-control" placeholder="Search by username, email, phone..." 
-                       value="{{ search_query }}" style="font-size: 13px;">
+                <input type="text" name="search" class="form-control" placeholder="Search by username, email, phone..."
+                    value="{{ search_query }}" style="font-size: 13px">
             </div>
             <div class="col-md-3">
-                <select name="role" class="form-control" style="font-size: 13px;">
+                <select name="role" class="form-control" style="font-size: 13px">
                     <option value="">All Roles</option>
                     <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
                     <option value="staff" {% if role_filter == 'staff' %}selected{% endif %}>Staff</option>
+                    <option value="munshi" {% if role_filter == 'munshi' %}selected{% endif %}>Munshi</option>
+                    <option value="driver" {% if role_filter == 'driver' %}selected{% endif %}>Driver</option>
+                    <option value="clerk" {% if role_filter == 'clerk' %}selected{% endif %}>Clerk</option>
+                    <option value="accountant" {% if role_filter == 'accountant' %}selected{% endif %}>Accountant</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <select name="status" class="form-control" style="font-size: 13px;">
+                <select name="status" class="form-control" style="font-size: 13px">
                     <option value="">All Status</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                     <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn-primary-custom" style="width: 100%; justify-content: center;">
+                <button type="submit" class="btn-primary-custom" style="width: 100%; justify-content: center">
                     <i class="fas fa-search"></i> Filter
                 </button>
             </div>
@@ -89,32 +93,91 @@
             <table class="table-custom">
                 <thead>
                     <tr>
+                        <th>Photo</th>
                         <th>ID</th>
                         <th>Username</th>
-                        <th>Email</th>
-                        <th>Phone</th>
+                        <th>Email/Phone</th>
                         <th>Role</th>
+                        <th>Documents</th>
                         <th>Status</th>
-                        <th>Joined</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for user in users %}
                     <tr>
+                        <!-- Profile Photo -->
+                        <td style="text-align: center;">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                                <div style="width: 40px; height: 40px; background: #e5e7eb; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="color: #9ca3af;"></i>
+                                </div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- ID -->
                         <td>{{ user.id }}</td>
+                        
+                        <!-- Username -->
                         <td>
                             <strong>{{ user.username }}</strong>
+                            {% if user.is_superuser %}
+                                <br><span class="badge" style="background: #8b5cf6;">Superuser</span>
+                            {% endif %}
                         </td>
-                        <td>{{ user.email|default:"-" }}</td>
-                        <td>{{ user.phone|default:"-" }}</td>
+                        
+                        <!-- Email/Phone -->
+                        <td>
+                            {{ user.email|default:"-" }}<br>
+                            <small style="color: #6b7280;">{{ user.phone|default:"No Phone" }}</small>
+                        </td>
+                        
+                        <!-- Role -->
                         <td>
                             {% if user.role == 'admin' %}
                                 <span class="badge" style="background: #2563eb;">Admin</span>
-                            {% else %}
+                            {% elif user.role == 'staff' %}
                                 <span class="badge" style="background: #6b7280;">Staff</span>
+                            {% elif user.role == 'munshi' %}
+                                <span class="badge" style="background: #8b5cf6;">Munshi</span>
+                            {% elif user.role == 'driver' %}
+                                <span class="badge" style="background: #f59e0b;">Driver</span>
+                            {% elif user.role == 'clerk' %}
+                                <span class="badge" style="background: #10b981;">Clerk</span>
+                            {% elif user.role == 'accountant' %}
+                                <span class="badge" style="background: #ef4444;">Accountant</span>
+                            {% else %}
+                                <span class="badge" style="background: #6b7280;">{{ user.role }}</span>
                             {% endif %}
                         </td>
+                        
+                        <!-- Documents -->
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                {% if user.aadhar_attachment %}
+                                    <a href="{{ user.aadhar_attachment.url }}" target="_blank" class="doc-badge" title="Aadhar Card">
+                                        <i class="fas fa-id-card"></i> Aadhar
+                                    </a>
+                                {% endif %}
+                                {% if user.pan_attachment %}
+                                    <a href="{{ user.pan_attachment.url }}" target="_blank" class="doc-badge" title="PAN Card">
+                                        <i class="fas fa-file-invoice"></i> PAN
+                                    </a>
+                                {% endif %}
+                                {% if user.license_attachment %}
+                                    <a href="{{ user.license_attachment.url }}" target="_blank" class="doc-badge" title="Driving License">
+                                        <i class="fas fa-id-card"></i> License
+                                    </a>
+                                {% endif %}
+                                {% if not user.aadhar_attachment and not user.pan_attachment and not user.license_attachment %}
+                                    <span class="text-muted">No docs</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        
+                        <!-- Status -->
                         <td>
                             {% if user.is_active %}
                                 <span class="badge" style="background: #10b981;">Active</span>
@@ -122,9 +185,11 @@
                                 <span class="badge" style="background: #ef4444;">Inactive</span>
                             {% endif %}
                         </td>
-                        <td>{{ user.date_joined|date:"d/m/Y" }}</td>
+                        
+                        <!-- Actions -->
                         <td>
                             <div class="d-flex gap-2">
+                                {% if user.id != request.user.id %}
                                 <a href="{% url 'user_edit' user.id %}" class="btn-sm" style="background: #2563eb; color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px;">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
@@ -135,6 +200,9 @@
                                 <button onclick="confirmDelete({{ user.id }}, '{{ user.username }}')" class="btn-sm" style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 6px; border: none; font-size: 11px;">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
+                                {% else %}
+                                <span class="badge" style="background: #2563eb;">Current</span>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -151,17 +219,15 @@
         {% if users.has_other_pages %}
         <div class="d-flex justify-content-center mt-4">
             <nav>
-                <ul class="pagination" style="gap: 5px;">
+                <ul class="pagination" style="gap: 5px">
                     {% if users.has_previous %}
-                        <li><a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" style="padding: 6px 12px; background: #f3f4f6; border-radius: 6px; text-decoration: none; color: #374151;">First</a></li>
-                        <li><a href="?page={{ users.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" style="padding: 6px 12px; background: #f3f4f6; border-radius: 6px; text-decoration: none; color: #374151;">Previous</a></li>
+                    <li><a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">First</a></li>
+                    <li><a href="?page={{ users.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">Previous</a></li>
                     {% endif %}
-                    
-                    <li><span style="padding: 6px 12px; background: #2563eb; color: white; border-radius: 6px;">Page {{ users.number }} of {{ users.paginator.num_pages }}</span></li>
-                    
+                    <li><span class="pagination-current">Page {{ users.number }} of {{ users.paginator.num_pages }}</span></li>
                     {% if users.has_next %}
-                        <li><a href="?page={{ users.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" style="padding: 6px 12px; background: #f3f4f6; border-radius: 6px; text-decoration: none; color: #374151;">Next</a></li>
-                        <li><a href="?page={{ users.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" style="padding: 6px 12px; background: #f3f4f6; border-radius: 6px; text-decoration: none; color: #374151;">Last</a></li>
+                    <li><a href="?page={{ users.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">Next</a></li>
+                    <li><a href="?page={{ users.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">Last</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -170,7 +236,7 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+<!-- Delete Modal -->
 <div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 14px; padding: 24px; max-width: 400px; width: 90%;">
         <h5 style="margin-bottom: 16px;">Confirm Delete</h5>
@@ -187,27 +253,55 @@
         const modal = document.getElementById('deleteModal');
         const deleteLink = document.getElementById('deleteLink');
         const deleteMessage = document.getElementById('deleteMessage');
-        
         deleteMessage.innerHTML = `Are you sure you want to delete user "<strong>${username}</strong>"? This action cannot be undone.`;
         deleteLink.href = `/user-delete/${userId}/`;
         modal.style.display = 'flex';
     }
-    
     function closeDeleteModal() {
         document.getElementById('deleteModal').style.display = 'none';
     }
 </script>
 
 <style>
+    .pagination-link, .pagination-current {
+        padding: 6px 12px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #374151;
+        font-size: 13px;
+    }
+    .pagination-current {
+        background: #2563eb;
+        color: white;
+    }
     .table-responsive-mobile {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    
     @media (max-width: 768px) {
-        .table-custom {
-            min-width: 700px;
-        }
+        .table-custom { min-width: 900px; }
+    }
+    
+    /* Document badge style */
+    .doc-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #f3f4f6;
+        color: #374151;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        text-decoration: none;
+        margin: 2px;
+    }
+    .doc-badge:hover {
+        background: #2563eb;
+        color: white;
+    }
+    .doc-badge i {
+        font-size: 10px;
     }
 </style>
 {% endblock %}

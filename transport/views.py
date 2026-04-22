@@ -5,6 +5,10 @@ from django.contrib.auth.decorators import login_required,user_passes_test
 from django.db.models import Q
 from .models import User
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.db import connection
+from .models import Party
+from .models import Truck
 
 def login_view(request):
     # Agar user already logged in hai toh redirect karo
@@ -119,6 +123,7 @@ def user_list(request):
         'inactive_users': users.filter(is_active=False).count(),
         'admin_count': users.filter(role='admin').count(),
         'staff_count': users.filter(role='staff').count(),
+        'driver_count': users.filter(role='driver').count(),
     }
     return render(request, 'transport/user_list.html', context)
 
@@ -158,6 +163,22 @@ def user_create(request):
             address=address,
             is_active=is_active
         )
+
+        if request.FILES.get('profile_picture'):
+            user.profile_picture = request.FILES['profile_picture']
+        if request.FILES.get('aadhar_attachment'):
+            user.aadhar_attachment = request.FILES['aadhar_attachment']
+        if request.FILES.get('pan_attachment'):
+            user.pan_attachment = request.FILES['pan_attachment']
+        if request.FILES.get('license_attachment'):
+            user.license_attachment = request.FILES['license_attachment']
+        
+        user.aadhar_number = request.POST.get('aadhar_number', '')
+        user.pan_number = request.POST.get('pan_number', '')
+        user.license_number = request.POST.get('license_number', '')
+        user.experience_years = request.POST.get('experience_years', 0)
+        
+        user.save()
         
         messages.success(request, f'यूजर "{username}" सफलतापूर्वक बन गया!')
         return redirect('user_list')
@@ -167,6 +188,11 @@ def user_create(request):
 @login_required
 @user_passes_test(lambda u: u.role == 'admin')
 def user_edit(request, user_id):
+    # Admin khud ko edit nahi kar sakta
+    if user_id == request.user.id:
+        messages.error(request, 'आप अपने आप को एडिट नहीं कर सकते!')
+        return redirect('user_list')
+    
     user = get_object_or_404(User, id=user_id, is_superuser=False)
     
     if request.method == 'POST':
@@ -177,7 +203,6 @@ def user_edit(request, user_id):
         user.address = request.POST.get('address')
         user.is_active = request.POST.get('is_active') == 'on'
         
-        # Check if password is being changed
         password = request.POST.get('password')
         if password:
             confirm_password = request.POST.get('confirm_password')
@@ -186,6 +211,34 @@ def user_edit(request, user_id):
             else:
                 messages.error(request, 'पासवर्ड और कन्फर्म पासवर्ड मेल नहीं खाते!')
                 return render(request, 'transport/user_form.html', {'user': user})
+            
+        if 'profile_picture' in request.FILES:
+            # Delete old file if exists
+            if user.profile_picture:
+                user.profile_picture.delete()
+            user.profile_picture = request.FILES['profile_picture']
+        
+        if 'aadhar_attachment' in request.FILES:
+            if user.aadhar_attachment:
+                user.aadhar_attachment.delete()
+            user.aadhar_attachment = request.FILES['aadhar_attachment']
+        
+        if 'pan_attachment' in request.FILES:
+            if user.pan_attachment:
+                user.pan_attachment.delete()
+            user.pan_attachment = request.FILES['pan_attachment']
+        
+        if 'license_attachment' in request.FILES:
+            if user.license_attachment:
+                user.license_attachment.delete()
+            user.license_attachment = request.FILES['license_attachment']
+        
+        user.aadhar_number = request.POST.get('aadhar_number', '')
+        user.pan_number = request.POST.get('pan_number', '')
+        user.license_number = request.POST.get('license_number', '')
+        user.experience_years = request.POST.get('experience_years', 0) or 0
+        
+            
         
         user.save()
         messages.success(request, f'यूजर "{user.username}" अपडेट हो गया!')
@@ -196,6 +249,9 @@ def user_edit(request, user_id):
 @login_required
 @user_passes_test(lambda u: u.role == 'admin')
 def user_delete(request, user_id):
+    if user_id == request.user.id:
+        messages.error(request, 'आप अपने आप को डिलीट नहीं कर सकते!')
+        return redirect('user_list')
     user = get_object_or_404(User, id=user_id, is_superuser=False)
     username = user.username
     user.delete()
@@ -211,3 +267,275 @@ def user_toggle_status(request, user_id):
     status = "सक्रिय" if user.is_active else "निष्क्रिय"
     messages.success(request, f'यूजर "{user.username}" {status} कर दिया गया!')
     return redirect('user_list')
+
+
+def get_states(request):
+    """Get states where country_id = 101 (India)"""
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, state_name FROM states WHERE country_id = 101 ORDER BY state_name")
+        states = cursor.fetchall()
+    
+    data = [{'id': s[0], 'name': s[1]} for s in states]
+    return JsonResponse(data, safe=False)
+
+def get_cities(request):
+    """Get cities based on state_id"""
+    state_id = request.GET.get('state_id')
+    if state_id:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, city_name FROM cities WHERE state_id = %s ORDER BY city_name", [state_id])
+            cities = cursor.fetchall()
+        
+        data = [{'id': c[0], 'name': c[1]} for c in cities]
+        return JsonResponse(data, safe=False)
+    return JsonResponse([], safe=False)
+
+
+@login_required
+@user_passes_test(lambda u: u.role in ['admin', 'staff','munshi'])
+def party_list(request):
+    """List all parties with filters"""
+    search_query = request.GET.get('search', '')
+    party_type_filter = request.GET.get('party_type', '')
+    city_filter = request.GET.get('city', '')
+    status_filter = request.GET.get('status', '')
+    
+    parties = Party.objects.all()
+    
+    if search_query:
+        parties = parties.filter(
+            models.Q(name__icontains=search_query) |
+            models.Q(company_name__icontains=search_query) |
+            models.Q(mobile__icontains=search_query) |
+            models.Q(city_name__icontains=search_query)
+        )
+    
+    if party_type_filter:
+        parties = parties.filter(party_type=party_type_filter)
+    
+    if city_filter:
+        parties = parties.filter(city_name__icontains=city_filter)
+    
+    if status_filter == 'active':
+        parties = parties.filter(is_active=True)
+    elif status_filter == 'inactive':
+        parties = parties.filter(is_active=False)
+    
+    paginator = Paginator(parties, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'parties': page_obj,
+        'search_query': search_query,
+        'party_type_filter': party_type_filter,
+        'city_filter': city_filter,
+        'status_filter': status_filter,
+        'total_parties': parties.count(),
+        'active_parties': parties.filter(is_active=True).count(),
+        'inactive_parties': parties.filter(is_active=False).count(),
+        'sender_count': parties.filter(party_type='sender').count(),
+        'receiver_count': parties.filter(party_type='receiver').count(),
+        'both_count': parties.filter(party_type='both').count(),
+    }
+    return render(request, 'transport/party_list.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.role in ['admin', 'staff'])
+def party_create(request):
+    """Create new party"""
+    if request.method == 'POST':
+        try:
+            party = Party.objects.create(
+                party_type=request.POST.get('party_type'),
+                name=request.POST.get('name'),
+                company_name=request.POST.get('company_name', ''),
+                mobile=request.POST.get('mobile'),
+                alternate_mobile=request.POST.get('alternate_mobile', ''),
+                email=request.POST.get('email', ''),
+                gst_number=request.POST.get('gst_number', ''),
+                address=request.POST.get('address'),
+                state_id=request.POST.get('state') or None,
+                city_id=request.POST.get('city') or None,
+                state_name=request.POST.get('state_name', ''),
+                city_name=request.POST.get('city_name', ''),
+                pincode=request.POST.get('pincode'),
+                opening_balance=request.POST.get('opening_balance', 0),
+                credit_limit=request.POST.get('credit_limit', 0),
+                is_active=request.POST.get('is_active') == 'on'
+            )
+            messages.success(request, f'Party "{party.name}" created successfully!')
+            return redirect('party_list')
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+    
+    return render(request, 'transport/party_form.html')
+
+
+@login_required
+@user_passes_test(lambda u: u.role in ['admin', 'staff'])
+def party_edit(request, party_id):
+    """Edit existing party"""
+    party = get_object_or_404(Party, id=party_id)
+    
+    if request.method == 'POST':
+        try:
+            party.party_type = request.POST.get('party_type')
+            party.name = request.POST.get('name')
+            party.company_name = request.POST.get('company_name', '')
+            party.mobile = request.POST.get('mobile')
+            party.alternate_mobile = request.POST.get('alternate_mobile', '')
+            party.email = request.POST.get('email', '')
+            party.gst_number = request.POST.get('gst_number', '')
+            party.address = request.POST.get('address')
+            party.state_id = request.POST.get('state') or None
+            party.city_id = request.POST.get('city') or None
+            party.state_name = request.POST.get('state_name', '')
+            party.city_name = request.POST.get('city_name', '')
+            party.pincode = request.POST.get('pincode')
+            party.opening_balance = request.POST.get('opening_balance', 0)
+            party.credit_limit = request.POST.get('credit_limit', 0)
+            party.is_active = request.POST.get('is_active') == 'on'
+            party.save()
+            
+            messages.success(request, f'Party "{party.name}" updated successfully!')
+            return redirect('party_list')
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+    
+    return render(request, 'transport/party_form.html', {'party': party})
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def party_delete(request, party_id):
+    """Delete party"""
+    party = get_object_or_404(Party, id=party_id)
+    party_name = party.name
+    party.delete()
+    messages.success(request, f'Party "{party_name}" deleted successfully!')
+    return redirect('party_list')
+
+
+@login_required
+@user_passes_test(lambda u: u.role in ['admin', 'staff'])
+def party_toggle_status(request, party_id):
+    """Toggle party active/inactive status"""
+    party = get_object_or_404(Party, id=party_id)
+    party.is_active = not party.is_active
+    party.save()
+    status = "activated" if party.is_active else "deactivated"
+    messages.success(request, f'Party "{party.name}" {status}!')
+    return redirect('party_list')
+
+
+@login_required
+@user_passes_test(lambda u: u.role in ['admin', 'staff','munshi'])
+def truck_list(request):
+    trucks = Truck.objects.all()
+    
+    search_query = request.GET.get('search', '')
+    if search_query:
+        trucks = trucks.filter(
+            models.Q(vehicle_number__icontains=search_query) |
+            models.Q(owner_name__icontains=search_query)
+        )
+    
+    paginator = Paginator(trucks, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'trucks': page_obj,
+        'search_query': search_query,
+        'total_trucks': trucks.count(),
+        'active_trucks': trucks.filter(status='active').count(),
+        'on_trip_trucks': trucks.filter(status='on_trip').count(),
+        'maintenance_trucks': trucks.filter(status='maintenance').count(),
+    }
+    return render(request, 'transport/truck_list.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role in ['admin', 'staff','munshi'])
+def truck_create(request):
+    drivers = User.objects.filter(role='driver', is_active=True)
+    
+    if request.method == 'POST':
+        truck = Truck.objects.create(
+            vehicle_number=request.POST.get('vehicle_number'),
+            chassis_number=request.POST.get('chassis_number'),
+            engine_number=request.POST.get('engine_number'),
+            truck_type=request.POST.get('truck_type'),
+            fuel_type=request.POST.get('fuel_type'),
+            max_weight_capacity=request.POST.get('max_weight_capacity', 0),
+            max_volume_capacity=request.POST.get('max_volume_capacity', 0),
+            owner_name=request.POST.get('owner_name'),
+            owner_phone=request.POST.get('owner_phone'),
+            primary_driver_id=request.POST.get('primary_driver') or None,
+            rc_number=request.POST.get('rc_number'),
+            insurance_number=request.POST.get('insurance_number'),
+            insurance_expiry=request.POST.get('insurance_expiry') or None,
+            fitness_validity=request.POST.get('fitness_validity') or None,
+            permit_number=request.POST.get('permit_number'),
+            status=request.POST.get('status'),
+        )
+        
+        # Handle file uploads
+        if request.FILES.get('rc_attachment'):
+            truck.rc_attachment = request.FILES['rc_attachment']
+        if request.FILES.get('insurance_attachment'):
+            truck.insurance_attachment = request.FILES['insurance_attachment']
+        if request.FILES.get('permit_attachment'):
+            truck.permit_attachment = request.FILES['permit_attachment']
+        
+        truck.save()
+        messages.success(request, f'Truck "{truck.vehicle_number}" added successfully!')
+        return redirect('truck_list')
+    
+    return render(request, 'transport/truck_form.html', {'drivers': drivers})
+
+@login_required
+@user_passes_test(lambda u: u.role in ['admin', 'staff','munshi'])
+def truck_edit(request, truck_id):
+    truck = get_object_or_404(Truck, id=truck_id)
+    drivers = User.objects.filter(role='driver', is_active=True)
+    
+    if request.method == 'POST':
+        truck.vehicle_number = request.POST.get('vehicle_number')
+        truck.chassis_number = request.POST.get('chassis_number')
+        truck.engine_number = request.POST.get('engine_number')
+        truck.truck_type = request.POST.get('truck_type')
+        truck.fuel_type = request.POST.get('fuel_type')
+        truck.max_weight_capacity = request.POST.get('max_weight_capacity', 0)
+        truck.max_volume_capacity = request.POST.get('max_volume_capacity', 0)
+        truck.owner_name = request.POST.get('owner_name')
+        truck.owner_phone = request.POST.get('owner_phone')
+        truck.primary_driver_id = request.POST.get('primary_driver') or None
+        truck.rc_number = request.POST.get('rc_number')
+        truck.insurance_number = request.POST.get('insurance_number')
+        truck.insurance_expiry = request.POST.get('insurance_expiry') or None
+        truck.fitness_validity = request.POST.get('fitness_validity') or None
+        truck.permit_number = request.POST.get('permit_number')
+        truck.status = request.POST.get('status')
+        
+        if request.FILES.get('rc_attachment'):
+            truck.rc_attachment = request.FILES['rc_attachment']
+        if request.FILES.get('insurance_attachment'):
+            truck.insurance_attachment = request.FILES['insurance_attachment']
+        if request.FILES.get('permit_attachment'):
+            truck.permit_attachment = request.FILES['permit_attachment']
+        
+        truck.save()
+        messages.success(request, f'Truck "{truck.vehicle_number}" updated successfully!')
+        return redirect('truck_list')
+    
+    return render(request, 'transport/truck_form.html', {'truck': truck, 'drivers': drivers})
+
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def truck_delete(request, truck_id):
+    truck = get_object_or_404(Truck, id=truck_id)
+    truck.delete()
+    messages.success(request, 'Truck deleted successfully!')
+    return redirect('truck_list')
