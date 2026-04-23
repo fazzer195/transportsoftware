@@ -1,0 +1,210 @@
+{% extends 'transport/base.html' %}
+
+{% block title %}Item Master - KBRL{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h4 style="font-size: 20px; font-weight: 600; color: #1f2937;">Item Master</h4>
+                <p style="font-size: 13px; color: #6b7280;">Manage products, goods, and materials</p>
+            </div>
+            <a href="{% url 'item_create' %}" class="btn-primary-custom">
+                <i class="fas fa-plus"></i> Add New Item
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-title">Total Items</div>
+            <div class="stat-value">{{ total_items }}</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-title">Active</div>
+            <div class="stat-value" style="color: #10b981;">{{ active_items }}</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-title">Inactive</div>
+            <div class="stat-value" style="color: #ef4444;">{{ inactive_items }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="content-card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-filter"></i> Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control" placeholder="Search by name, code, description..."
+                    value="{{ search_query }}" style="font-size: 13px">
+            </div>
+            <div class="col-md-3">
+                <select name="unit" class="form-control" style="font-size: 13px">
+                    <option value="">All Units</option>
+                    {% for unit_code, unit_name in unit_choices %}
+                    <option value="{{ unit_code }}" {% if unit_filter == unit_code %}selected{% endif %}>{{ unit_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-control" style="font-size: 13px">
+                    <option value="">All Status</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn-primary-custom" style="width: 100%; justify-content: center">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Items Table -->
+<div class="content-card">
+    <div class="card-header">
+        <h5><i class="fas fa-boxes"></i> Items List</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive-mobile">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Item Name</th>
+                        <th>Size</th>
+                        <th>Unit</th>
+                        <th>Weight/Unit</th>
+                        <th>Freight Rate</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td><strong>{{ item.code|default:"-" }}</strong></td>
+                        <td>
+                            <strong>{{ item.name }}</strong>
+                            {% if item.description %}
+                                <br><small style="color: #6b7280;">{{ item.description|truncatechars:30 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.size|default:"-" }}</td>
+                        <td>{{ item.get_unit_display }}</td>
+                        <td>{{ item.weight_per_unit }} KG</td>
+                        <td>₹{{ item.default_freight_rate|floatformat:2 }}</td>
+                        <td>
+                            {% if item.status == 'active' %}
+                                <span class="badge" style="background: #10b981;">Active</span>
+                            {% else %}
+                                <span class="badge" style="background: #ef4444;">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'item_edit' item.id %}" class="btn-sm" style="background: #2563eb; color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="{% url 'item_toggle_status' item.id %}" class="btn-sm" style="background: {% if item.status == 'active' %}#ef4444{% else %}#10b981{% endif %}; color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px;">
+                                    <i class="fas fa-{% if item.status == 'active' %}ban{% else %}check{% endif %}"></i>
+                                    {% if item.status == 'active' %}Disable{% else %}Enable{% endif %}
+                                </a>
+                                <button onclick="confirmDelete({{ item.id }}, '{{ item.name }}')" class="btn-sm" style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 6px; border: none; font-size: 11px;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">No items found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if items.has_other_pages %}
+        <div class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination" style="gap: 5px">
+                    {% if items.has_previous %}
+                    <li><a href="?page=1" class="pagination-link">First</a></li>
+                    <li><a href="?page={{ items.previous_page_number }}" class="pagination-link">Previous</a></li>
+                    {% endif %}
+                    <li><span class="pagination-current">Page {{ items.number }} of {{ items.paginator.num_pages }}</span></li>
+                    {% if items.has_next %}
+                    <li><a href="?page={{ items.next_page_number }}" class="pagination-link">Next</a></li>
+                    <li><a href="?page={{ items.paginator.num_pages }}" class="pagination-link">Last</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 14px; padding: 24px; max-width: 400px; width: 90%;">
+        <h5 style="margin-bottom: 16px;">Confirm Delete</h5>
+        <p id="deleteMessage" style="font-size: 13px; color: #6b7280;">Are you sure you want to delete this item?</p>
+        <div class="d-flex gap-3 justify-content-end mt-4">
+            <button onclick="closeDeleteModal()" style="padding: 8px 16px; background: #f3f4f6; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+            <a href="#" id="deleteLink" style="padding: 8px 16px; background: #dc2626; color: white; text-decoration: none; border-radius: 8px;">Delete</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(itemId, itemName) {
+        const modal = document.getElementById('deleteModal');
+        const deleteLink = document.getElementById('deleteLink');
+        const deleteMessage = document.getElementById('deleteMessage');
+        deleteMessage.innerHTML = `Are you sure you want to delete item "<strong>${itemName}</strong>"? This action cannot be undone.`;
+        deleteLink.href = `/item-delete/${itemId}/`;
+        modal.style.display = 'flex';
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+</script>
+
+<style>
+    .pagination-link, .pagination-current {
+        padding: 6px 12px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #374151;
+        font-size: 13px;
+    }
+    .pagination-current {
+        background: #2563eb;
+        color: white;
+    }
+    .table-responsive-mobile {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    @media (max-width: 768px) {
+        .table-custom { min-width: 800px; }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends 'transport/base.html' %}
+
+{% block title %}Builty Details - {{ builty.builty_no }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <a href="{% url 'builty_list' %}" class="btn-primary-custom" style="background: #6b7280;">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn-primary-custom" style="background: #10b981;">
+                    <i class="fas fa-print"></i> Print Challan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Challan Invoice - EXACT PDF DESIGN -->
+<div class="challan-container" id="challan-content">
+    <div class="challan">
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="left-column">
+                <div class="mobile-text">मोबाइल<br/>9307096262<br/>9696671818</div>
+                <div class="company-name">कानपुर बिल्हीर रोडलाइन्स</div>
+                <div class="company-address">80/58, ए-2, कोपरगंज, कानपुर (चाचा नेहरु के सामने)</div>
+                <div class="challan-title">भाड़ा चालान</div>
+            </div>
+            <div class="right-column">
+                <div>चालक का नाम : {{ builty.driver_name|default:builty.driver.username|default:"-" }}</div>
+                <div>{{ builty.driver_phone|default:builty.driver.phone|default:"-" }}</div>
+                <div>मुनीम का नाम : {{ builty.created_by.username }}</div>
+                <div>सह मुनीम का नाम : BM के अनुसार</div>
+            </div>
+        </div>
+
+        <!-- Row 1: Total and Date -->
+        <div class="row-line">
+            <div class="left">कुल योग : Rs.{{ builty.grand_total|floatformat:2 }}</div>
+            <div class="right">दिनांक : {{ builty.date|date:"d-M-Y" }}</div>
+        </div>
+
+        <!-- Row 2: Weight and Vehicle -->
+        <div class="row-line">
+            <div class="left">कुल वजन : {{ builty.total_weight|floatformat:0 }} Kg.</div>
+            <div class="right">पलटी की गाड़ी का नं. : {{ builty.vehicle_number|default:builty.vehicle.vehicle_number|default:"-" }}</div>
+        </div>
+
+        <!-- Row 3: Freight and Paid -->
+        <div class="row-line">
+            <div class="left">कुल भाड़ा : Rs.{{ builty.total_freight|floatformat:2 }}</div>
+            <div class="right">पेड भाड़ा : Rs.{{ builty.paid_amount|floatformat:2 }}</div>
+        </div>
+
+        <!-- Row 4: Challan No and Total Qty -->
+        <div class="row-line">
+            <div class="left">चालान संख्या : {{ builty.builty_no }}</div>
+            <div class="right">कुल नग : {{ builty.total_quantity }}</div>
+        </div>
+
+        <!-- Row 5: Hamali and Advance -->
+        <div class="row-line">
+            <div class="left">कुल हम्माली : Rs.{{ builty.total_hamali|floatformat:2 }}</div>
+            <div class="right">एडवांस : Rs.0</div>
+        </div>
+
+        <!-- Row 6: Vehicle No and Total Billi -->
+        <div class="row-line">
+            <div class="left">गाड़ी संख्या : {{ builty.vehicle_number|default:builty.vehicle.vehicle_number|default:"-" }}</div>
+            <div class="right">कुल बिल्टी : {{ builty.items.count }}</div>
+        </div>
+
+        <!-- Row 7: Billi Charge and Other Expense -->
+        <div class="row-line">
+            <div class="left">कुल बिल्टी चार्ज : Rs.{{ builty.total_billi_charge|floatformat:2 }}</div>
+            <div class="right">अन्य खर्च : Rs.{{ builty.total_other_expense|floatformat:2 }}</div>
+        </div>
+
+        <!-- Row 8: PF, TBB, Labour -->
+        <div class="row-line">
+            <div class="left">P.F. : Rs.{{ builty.paid_amount|floatformat:2 }}</div>
+            <div class="center">TBB : Rs.0</div>
+            <div class="right">Labour Amt. : Rs.{{ builty.total_hamali|floatformat:2 }}</div>
+        </div>
+
+        <!-- Instructions Section (Sunim and BM) -->
+        <div class="instructions">
+            <div class="sunim-box">
+                <div class="sunim-title">सुनीम को दिई</div>
+                <div class="sunim-content">
+                    1. ड्राईवर को पेमेंट दे Rs.{{ builty.paid_amount|floatformat:2 }}/-<br>
+                    2. Rs.{{ builty.grand_total|floatformat:2 }}/- बैंक CBI में जमा करें या *** को पेमेंट दे देखें |<br>
+                    3. पलटी की गाड़ी को पेमेंट करें Rs.0<br>
+                    4. BM को पेमेंट दे Rs.0/-
+                </div>
+            </div>
+            <div class="bm-box">
+                <div class="bm-title">B.M. को दिई</div>
+                <div class="bm-content">
+                    1. मुनीम से हिसाब लेकर कानपुर भेजें |<br>
+                    2. समायोजन खाते में Rs.0 डालें |<br>
+                    3. BM खाते का Rs.0/- UMBE में जमा करें
+                </div>
+            </div>
+        </div>
+
+        <!-- Station Footer -->
+        <div class="station-footer">
+            <div>स्टेशन : बिल्डर, क्योज, ककवन, गरगमीर, अरोल, मियोज, मानीम, गोमुप, लिखवा, बकोटी, अलियापूर, बिधधन, लिस्टी</div>
+            <div>STATION: बिल्डर VEHCLE NO:{{ builty.vehicle_number|default:builty.vehicle.vehicle_number|default:"-" }} CHALLAN No.:{{ builty.builty_no }}</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* EXACT PDF STYLES */
+    .challan-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+    }
+    
+    .challan {
+        width: 100%;
+        background: white;
+        border: 1px solid #000;
+        padding: 15px;
+        font-family: 'Courier New', 'Lucida Sans Typewriter', monospace;
+    }
+    
+    /* Header Section */
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #000;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .left-column {
+        font-size: 11px;
+    }
+    
+    .mobile-text {
+        font-size: 9px;
+        margin-bottom: 2px;
+    }
+    
+    .company-name {
+        font-size: 16px;
+        font-weight: bold;
+    }
+    
+    .company-address {
+        font-size: 9px;
+        margin-top: 2px;
+    }
+    
+    .challan-title {
+        font-size: 13px;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+    
+    .right-column {
+        text-align: right;
+        font-size: 10px;
+        line-height: 1.4;
+    }
+    
+    /* Row Styles */
+    .row-line {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px dashed #ccc;
+        padding: 5px 0;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    
+    .row-line:first-of-type {
+        border-bottom: 1px solid #000;
+    }
+    
+    .left, .center, .right {
+        font-family: monospace;
+    }
+    
+    .center {
+        text-align: center;
+    }
+    
+    /* Instructions Section */
+    .instructions {
+        display: flex;
+        border-bottom: 1px solid #000;
+        padding: 10px 0;
+        margin: 5px 0;
+        gap: 30px;
+    }
+    
+    .sunim-box, .bm-box {
+        flex: 1;
+        font-size: 9px;
+        line-height: 1.4;
+    }
+    
+    .sunim-title, .bm-title {
+        font-weight: bold;
+        text-decoration: underline;
+        margin-bottom: 5px;
+    }
+    
+    .sunim-content, .bm-content {
+        font-family: monospace;
+    }
+    
+    /* Footer */
+    .station-footer {
+        margin-top: 10px;
+        padding-top: 5px;
+        border-top: 1px solid #000;
+        font-size: 8px;
+        font-family: monospace;
+    }
+    
+    .station-footer div:first-child {
+        margin-bottom: 3px;
+    }
+    
+    /* Print Styles */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #challan-content, #challan-content * {
+            visibility: visible;
+        }
+        #challan-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            margin: 0;
+            padding: 10px;
+        }
+        .btn-primary-custom, .d-flex, .row.mb-4, .navbar, .sidebar, .footer {
+            display: none !important;
+        }
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .challan {
+            border: none;
+            padding: 0;
+        }
+        @page {
+            size: portrait;
+            margin: 0.5cm;
+        }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .challan {
+            padding: 10px;
+        }
+        .company-name {
+            font-size: 14px;
+        }
+        .row-line {
+            font-size: 9px;
+            flex-wrap: wrap;
+        }
+        .instructions {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+
+<script>
+    // Auto trigger print if needed (optional)
+    // window.onload = function() { window.print(); }
+</script>
+{% endblock %}

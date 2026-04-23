@@ -1,0 +1,417 @@
+{% extends 'transport/base.html' %}
+
+{% block title %}New Builty - KBRL{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h4 style="font-size: 20px; font-weight: 600; color: #1f2937;">New Builty / Challan</h4>
+                <p style="font-size: 13px; color: #6b7280;">Create a new consignment / goods receipt</p>
+            </div>
+            <a href="{% if request.user.role == 'munshi' %}{% url 'munshi_dashboard' %}{% else %}{% url 'builty_list' %}{% endif %}" class="btn-primary-custom" style="background: #6b7280;">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="card-header">
+        <h5><i class="fas fa-file-invoice"></i> Builty / Challan Form</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="builtyForm">
+            {% csrf_token %}
+            
+            <!-- Party Details -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <h6 style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                        <i class="fas fa-user-tie"></i> Sender (Consignor) Details
+                    </h6>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Select Existing Sender</label>
+                    <select name="sender" class="form-control" id="senderSelect">
+                        <option value="">-- New Sender --</option>
+                        {% for party in parties %}
+                            {% if party.party_type == 'sender' or party.party_type == 'both' %}
+                            <option value="{{ party.id }}">{{ party.name }} - {{ party.mobile }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8" id="senderFields">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Sender Name <span class="text-danger">*</span></label>
+                            <input type="text" name="sender_name" class="form-control" id="senderName">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile</label>
+                            <input type="text" name="sender_mobile" class="form-control" id="senderMobile">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <textarea name="sender_address" class="form-control" rows="2" id="senderAddress"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">City</label>
+                            <input type="text" name="sender_city" class="form-control" id="senderCity">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">State</label>
+                            <input type="text" name="sender_state" class="form-control" id="senderState">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Pincode</label>
+                            <input type="text" name="sender_pincode" class="form-control" id="senderPincode">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <h6 style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                        <i class="fas fa-user-check"></i> Receiver (Consignee) Details
+                    </h6>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Select Existing Receiver</label>
+                    <select name="receiver" class="form-control" id="receiverSelect">
+                        <option value="">-- New Receiver --</option>
+                        {% for party in parties %}
+                            {% if party.party_type == 'receiver' or party.party_type == 'both' %}
+                            <option value="{{ party.id }}">{{ party.name }} - {{ party.mobile }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8" id="receiverFields">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Receiver Name <span class="text-danger">*</span></label>
+                            <input type="text" name="receiver_name" class="form-control" id="receiverName">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile</label>
+                            <input type="text" name="receiver_mobile" class="form-control" id="receiverMobile">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <textarea name="receiver_address" class="form-control" rows="2" id="receiverAddress"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">City</label>
+                            <input type="text" name="receiver_city" class="form-control" id="receiverCity">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">State</label>
+                            <input type="text" name="receiver_state" class="form-control" id="receiverState">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Pincode</label>
+                            <input type="text" name="receiver_pincode" class="form-control" id="receiverPincode">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Route Details -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <h6 style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                        <i class="fas fa-route"></i> Route Details
+                    </h6>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">From (Loading Point)</label>
+                    <input type="text" name="from_location" class="form-control" placeholder="e.g., Kanpur" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">To (Delivery Point)</label>
+                    <input type="text" name="to_location" class="form-control" placeholder="e.g., Billhaur" required>
+                </div>
+            </div>
+            
+            <!-- Vehicle Details -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <h6 style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                        <i class="fas fa-truck"></i> Vehicle Details
+                    </h6>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Select Vehicle</label>
+                    <select name="vehicle" class="form-control" id="vehicleSelect">
+                        <option value="">-- New Vehicle --</option>
+                        {% for truck in trucks %}
+                        <option value="{{ truck.id }}">{{ truck.vehicle_number }} ({{ truck.get_truck_type_display }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8" id="vehicleFields">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Vehicle Number</label>
+                            <input type="text" name="vehicle_number" class="form-control" id="vehicleNumber">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Driver Name</label>
+                            <input type="text" name="driver_name" class="form-control" id="driverName">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Driver Phone</label>
+                            <input type="text" name="driver_phone" class="form-control" id="driverPhone">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Items Table -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <h6 style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                        <i class="fas fa-boxes"></i> Items / Goods Details
+                    </h6>
+                    <button type="button" class="btn-primary-custom" id="addItemBtn" style="margin-bottom: 10px;">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                </div>
+                <div class="col-12">
+                    <div class="table-responsive">
+                        <table class="table-custom" id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Description</th>
+                                    <th>Qty</th>
+                                    <th>Unit</th>
+                                    <th>Weight (KG)</th>
+                                    <th>Freight (₹)</th>
+                                    <th>Hamali (₹)</th>
+                                    <th>Billi Charge</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                <tr class="item-row">
+                                    <td><input type="text" name="item_name[]" class="form-control form-control-sm" list="itemList"></td>
+                                    <td><input type="text" name="item_desc[]" class="form-control form-control-sm"></td>
+                                    <td><input type="number" name="item_quantity[]" class="form-control form-control-sm quantity" value="1"></td>
+                                    <td><input type="text" name="item_unit[]" class="form-control form-control-sm" value="pcs"></td>
+                                    <td><input type="number" step="0.01" name="item_weight[]" class="form-control form-control-sm weight" value="0"></td>
+                                    <td><input type="number" step="0.01" name="item_freight[]" class="form-control form-control-sm freight" value="0"></td>
+                                    <td><input type="number" step="0.01" name="item_hamali[]" class="form-control form-control-sm hamali" value="0"></td>
+                                    <td><input type="number" step="0.01" name="item_billi_charge[]" class="form-control form-control-sm billi" value="0"></td>
+                                    <td><button type="button" class="remove-row btn-sm" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px;"><i class="fas fa-trash"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Totals -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <h6 style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                        <i class="fas fa-calculator"></i> Summary & Charges
+                    </h6>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Total Quantity</label>
+                    <input type="text"  name="total_quantity" id="totalQuantity" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Total Weight (KG)</label>
+                    <input type="text" name="total_weight" id="totalWeight" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Total Freight (₹)</label>
+                    <input type="text" name="total_freight" id="totalFreight" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Total Hamali (₹)</label>
+                    <input type="text" name="total_hamali" id="totalHamali" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Total Billi Charge (₹)</label>
+                    <input type="text" name="total_billi_charge" id="totalBilli" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Other Expenses (₹)</label>
+                    <input type="number" step="0.01" name="total_other_expense" id="otherExpense" class="form-control" value="0">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Paid Amount (₹)</label>
+                    <input type="number" step="0.01" name="paid_amount" id="paidAmount" class="form-control" value="0">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Grand Total (₹)</label>
+                    <input type="text" name="grand_total" id="grandTotal" class="form-control" readonly>
+                </div>
+            </div>
+            
+            <!-- Remarks -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <label class="form-label">Remarks / Instructions</label>
+                    <textarea name="remarks" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            
+            <!-- Submit -->
+            <div class="row">
+                <div class="col-12">
+                    <button type="submit" class="btn-primary-custom">
+                        <i class="fas fa-save"></i> Generate Builty
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<datalist id="itemList">
+    {% for item in items %}
+    <option value="{{ item.name }}" data-unit="{{ item.unit }}" data-weight="{{ item.weight_per_unit }}" data-freight="{{ item.default_freight_rate }}">
+    {% endfor %}
+</datalist>
+
+<style>
+    .form-control-sm { font-size: 12px; padding: 4px 8px; }
+    .remove-row { cursor: pointer; }
+    #itemsTable { width: 100%; font-size: 12px; }
+    #itemsTable th, #itemsTable td { padding: 6px; border: 1px solid #e5e7eb; }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Party selection handlers
+    $('#senderSelect').on('change', function() {
+        var partyId = $(this).val();
+        if(partyId) {
+            $.get('/get-party-details/' + partyId + '/', function(data) {
+                $('#senderName').val(data.name);
+                $('#senderMobile').val(data.mobile);
+                $('#senderAddress').val(data.address);
+                $('#senderCity').val(data.city);
+                $('#senderState').val(data.state);
+                $('#senderPincode').val(data.pincode);
+            });
+        } else {
+            $('#senderName, #senderMobile, #senderAddress, #senderCity, #senderState, #senderPincode').val('');
+        }
+    });
+    
+    $('#receiverSelect').on('change', function() {
+        var partyId = $(this).val();
+        if(partyId) {
+            $.get('/get-party-details/' + partyId + '/', function(data) {
+                $('#receiverName').val(data.name);
+                $('#receiverMobile').val(data.mobile);
+                $('#receiverAddress').val(data.address);
+                $('#receiverCity').val(data.city);
+                $('#receiverState').val(data.state);
+                $('#receiverPincode').val(data.pincode);
+            });
+        } else {
+            $('#receiverName, #receiverMobile, #receiverAddress, #receiverCity, #receiverState, #receiverPincode').val('');
+        }
+    });
+    
+    // Vehicle selection handler
+    $('#vehicleSelect').on('change', function() {
+        var vehicleId = $(this).val();
+        if(vehicleId) {
+            $.get('/get-vehicle-details/' + vehicleId + '/', function(data) {
+                $('#vehicleNumber').val(data.vehicle_number);
+                $('#driverName').val(data.driver_name);
+                $('#driverPhone').val(data.driver_phone);
+            });
+        } else {
+            $('#vehicleNumber, #driverName, #driverPhone').val('');
+        }
+    });
+    
+    // Add item row
+    $('#addItemBtn').on('click', function() {
+        var newRow = `<tr class="item-row">
+            <td><input type="text" name="item_name[]" class="form-control form-control-sm" list="itemList"></td>
+            <td><input type="text" name="item_desc[]" class="form-control form-control-sm"></td>
+            <td><input type="number" name="item_quantity[]" class="form-control form-control-sm quantity" value="1"></td>
+            <td><input type="text" name="item_unit[]" class="form-control form-control-sm" value="pcs"></td>
+            <td><input type="number" step="0.01" name="item_weight[]" class="form-control form-control-sm weight" value="0"></td>
+            <td><input type="number" step="0.01" name="item_freight[]" class="form-control form-control-sm freight" value="0"></td>
+            <td><input type="number" step="0.01" name="item_hamali[]" class="form-control form-control-sm hamali" value="0"></td>
+            <td><input type="number" step="0.01" name="item_billi_charge[]" class="form-control form-control-sm billi" value="0"></td>
+            <td><button type="button" class="remove-row btn-sm" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px;"><i class="fas fa-trash"></i></button></td>
+        </tr>`;
+        $('#itemsBody').append(newRow);
+        attachEvents();
+    });
+    
+    function attachEvents() {
+        $('.remove-row').off('click').on('click', function() {
+            $(this).closest('tr').remove();
+            calculateTotals();
+        });
+        $('.quantity, .weight, .freight, .hamali, .billi').off('keyup').on('keyup', function() {
+            calculateTotals();
+        });
+    }
+    
+    function calculateTotals() {
+    var totalQty = 0, totalWeight = 0, totalFreight = 0, totalHamali = 0, totalBilli = 0;
+    
+    $('.item-row').each(function() {
+        var qty = parseFloat($(this).find('.quantity').val()) || 0;
+        var wt = parseFloat($(this).find('.weight').val()) || 0;
+        var fr = parseFloat($(this).find('.freight').val()) || 0;
+        var hm = parseFloat($(this).find('.hamali').val()) || 0;
+        var bl = parseFloat($(this).find('.billi').val()) || 0;
+        
+        totalQty += qty;
+        totalWeight += wt;
+        totalFreight += fr;
+        totalHamali += hm;
+        totalBilli += bl;
+    });
+    
+    // Round to integer for quantity
+    $('#totalQuantity').val(Math.round(totalQty));
+    $('#totalWeight').val(totalWeight.toFixed(2));
+    $('#totalFreight').val(totalFreight.toFixed(2));
+    $('#totalHamali').val(totalHamali.toFixed(2));
+    $('#totalBilli').val(totalBilli.toFixed(2));
+    
+    var otherExpense = parseFloat($('#otherExpense').val()) || 0;
+    var paidAmount = parseFloat($('#paidAmount').val()) || 0;
+    var grandTotal = totalFreight + totalHamali + totalBilli + otherExpense - paidAmount;
+    
+    $('#grandTotal').val(grandTotal.toFixed(2));
+}
+    
+    $('#otherExpense, #paidAmount').on('keyup', function() { calculateTotals(); });
+    attachEvents();
+    
+    // Item selection from datalist
+    $('#itemsBody').on('change', 'input[list="itemList"]', function() {
+        var val = $(this).val();
+        var row = $(this).closest('tr');
+        $('#itemList option').each(function() {
+            if($(this).val() == val) {
+                row.find('.item_unit').val($(this).data('unit'));
+                row.find('.weight').val($(this).data('weight'));
+                row.find('.freight').val($(this).data('freight'));
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

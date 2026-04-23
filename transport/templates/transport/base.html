@@ -552,6 +552,8 @@
         {% include 'transport/admin_sidebar.html' %}
     {% elif request.user.role == 'staff' %}
         {% include 'transport/staff_sidebar.html' %}
+    {% elif request.user.role == 'munshi' %}
+        {% include 'transport/munshi_sidebar.html' %}    
     {% endif %}
 
     <!-- Main Content -->
@@ -640,7 +642,7 @@ setTimeout(function() {
             }
         }, 300);
     });
-}, 3000);
+}, 7000);
 
 // Manual close button functionality
 document.addEventListener('click', function(e) {

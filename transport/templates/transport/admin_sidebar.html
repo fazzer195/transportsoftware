@@ -21,10 +21,30 @@
 
     <div class="nav-item">
         <a href="{% url 'truck_list' %}" class="nav-link">
-            <i class="fas fa-users"></i> 
+            <i class="fas fa-truck"></i> 
             <span>truck Management</span>
         </a>
     </div>
+
+    <div class="nav-item">
+    <a href="{% url 'item_list' %}" class="nav-link">
+        <i class="fas fa-boxes"></i> 
+        <span>Item Master</span>
+    </a>
+    </div>
+
+    <div class="nav-item">
+    <a href="{% url 'builty_create' %}" class="nav-link">
+        <i class="fas fa-file-invoice"></i> 
+        <span>New Builty</span>
+    </a>
+</div>
+<div class="nav-item">
+    <a href="{% url 'builty_list' %}" class="nav-link">
+        <i class="fas fa-list"></i> 
+        <span>Builty List</span>
+    </a>
+</div>
     <!-- <div class="nav-item">
         <a href="#" class="nav-link">
             <i class="fas fa-file-invoice"></i> 
