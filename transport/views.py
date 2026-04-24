@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.db import connection
-from .models import Builty, BuiltyItem, Item, Party, Truck, User as CustomUser
+from .models import Builty, BuiltyItem, Item, Party, Truck, User 
 from django.utils import timezone
 
 def login_view(request):
@@ -773,7 +773,7 @@ def builty_create(request):
     """Create new builty"""
     parties = Party.objects.filter(is_active=True)
     trucks = Truck.objects.filter(status='active')
-    drivers = CustomUser.objects.filter(role='driver', is_active=True)
+    drivers = User.objects.filter(role='driver', is_active=True)
     items = Item.objects.filter(status='active')
     
     if request.method == 'POST':
