@@ -773,7 +773,7 @@ def builty_create(request):
     """Create new builty"""
     parties = Party.objects.filter(is_active=True)
     trucks = Truck.objects.filter(status='active')
-    drivers = User.objects.filter(role='driver', is_active=True)
+    drivers= User.objects.filter(role='driver', is_active=True)
     items = Item.objects.filter(status='active')
     
     if request.method == 'POST':
